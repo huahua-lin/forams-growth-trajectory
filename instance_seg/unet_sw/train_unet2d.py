@@ -16,7 +16,7 @@ def run():
     writer = SummaryWriter(log_dir=args.log_dir)
     device = torch.device("cpu" if not torch.cuda.is_available() else args.device)
 
-    train_dataset = ForamDataset2D(args.data_folder, phase="train", transform=True)
+    train_dataset = ForamDataset2D(args.data_pth, phase="train", transform=True)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                                worker_init_fn=seed_worker,
                                                generator=torch.Generator().manual_seed(0), )
@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Training 2D U-Net model for semantic segmentation")
     parser.add_argument("--device", type=str, default="cuda:0")
-    parser.add_argument("--data-folder", type=str, default=".", help="Folder containing training data")
+    parser.add_argument("--data-pth", type=str, default=".", help="Path to training data")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--lr", type=float, default=0.001)
