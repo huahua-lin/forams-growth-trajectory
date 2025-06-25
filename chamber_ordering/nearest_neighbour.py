@@ -1,5 +1,4 @@
 import argparse
-import csv
 import ast
 from typing import Tuple
 
@@ -7,15 +6,6 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 from utils import plot_trajectory
-
-
-def max_columns_in_csv(filepath: str) -> int:
-    max_columns = 0
-    with open(filepath, newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        for row in reader:
-            max_columns = max(max_columns, len(row))
-    return max_columns
 
 
 def nearest_neighbor_tsp(points: np.ndarray, start_idx: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -32,8 +22,8 @@ def nearest_neighbor_tsp(points: np.ndarray, start_idx: int) -> Tuple[np.ndarray
             start_idx: The index of the starting point in the `points` array.
 
         Returns:
-            path: A (N, D) array representing the sequence of points visited.
-            order: A (N,) array of indices indicating the visiting order of original points.
+            np.ndarray: A (N, D) array representing the sequence of points visited.
+            np.ndarray: A (N,) array of indices indicating the visiting order of original points.
 
         """
     # Start from the first point
@@ -68,11 +58,7 @@ def run():
 
     for name in names:
         row = df.loc[df['name'] == name]
-        pred_centroids = []
-        for i in range(1, max_columns_in_csv(args.csv_file) - 2):
-            if not pd.isna(row[str(i)].values[0]):
-                pred_centroids.append(ast.literal_eval(row[str(i)].values[0]))
-        pred_centroids = np.array(pred_centroids)
+        pred_centroids = np.array(ast.literal_eval(row["centroids"].values[0]))
         pred_volumes = np.array(ast.literal_eval(row["volumes"].values[0]))
 
         # the trajectory starts with the chamber with the smallest volume
@@ -88,6 +74,8 @@ def run():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Reconstructing growth trajectory of chambers")
     parser.add_argument("--csv-file", type=str,
-                        default=".", help="File name of csv that stores the chamber information")
+                        default=".",
+                        help="Path to csv that stores the chamber information")
+
     args = parser.parse_args()
     run()
