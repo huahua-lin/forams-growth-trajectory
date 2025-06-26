@@ -41,14 +41,25 @@ def save_slice_by_slice(pth: str, volume: np.ndarray, dim: int, format=".png"):
         format: Format of saved slice.
 
     """
+
     if volume.ndim != 3:
         raise ValueError("Volume should be 3D array")
 
-    sample_name = pth.split('/')[-1]
     if not os.path.exists(pth):
         os.makedirs(pth)
 
     # Save slice by slice (0.png, 1.png, ...)
     for i in range(volume.shape[dim]):
-        mask_img = Image.fromarray(volume[:, :, i].astype(np.uint8))
-        mask_img.save(os.path.join(pth, str(i) + format))
+        if dim == 0:
+            slice_ = volume[i, :, :]
+        elif dim == 1:
+            slice_ = volume[:, i, :]
+        elif dim == 2:
+            slice_ = volume[:, :, i]
+        else:
+            raise ValueError("Invalid dim value; should be 0, 1, or 2")
+        if np.issubdtype(volume.dtype, np.bool_):
+            slice_ = Image.fromarray(slice_.astype(np.uint8) * 255).convert("1")
+        else:
+            slice_ = Image.fromarray(slice_.astype(np.uint8))
+        slice_.save(os.path.join(pth, str(i) + format))
