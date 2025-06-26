@@ -1,5 +1,5 @@
 import argparse
-import os
+from pathlib import Path
 
 import torch.optim
 from torch import nn
@@ -12,7 +12,7 @@ from unet2d import UNet2D
 
 
 def run():
-    os.makedirs(args.log_dir, exist_ok=True)
+    Path(args.log_dir).mkdir(parents=True, exist_ok=True)
     writer = SummaryWriter(log_dir=args.log_dir)
     device = torch.device("cpu" if not torch.cuda.is_available() else args.device)
 
@@ -43,7 +43,7 @@ def run():
         writer.flush()
         print("Epoch %d, average training BCE %9.6f" % (epoch + 1, training_loss / len(train_loader)))
         if args.save:
-            os.makedirs(args.cpt, exist_ok=True)
+            Path(args.cpt).mkdir(parents=True, exist_ok=True)
             torch.save({'epoch': epoch + 1,
                         'model_state_dict': model.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),

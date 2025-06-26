@@ -1,5 +1,5 @@
 import argparse
-import os
+from pathlib import Path
 
 import torch.optim
 from torch import nn
@@ -7,13 +7,13 @@ from torch.utils.tensorboard import SummaryWriter
 
 from datasets import ForamDataset3D
 
-from utils import seed_worker, control_random
+from utils import seed_worker, control_random, DiceLoss
 from unet3d_plantseg import UNet3D_PlantSeg
 import torchio as tio
 
 
 def run(args):
-    os.makedirs(args.log_dir, exist_ok=True)
+    Path(args.log_dir).mkdir(parents=True, exist_ok=True)
     writer = SummaryWriter(log_dir=args.log_dir)
     device = torch.device("cpu" if not torch.cuda.is_available() else args.device)
 
@@ -33,7 +33,7 @@ def run(args):
         model = nn.DataParallel(model)
 
     bce_loss = nn.BCEWithLogitsLoss()
-    dsc_loss = utils.DiceLoss()
+    dsc_loss = DiceLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     for epoch in range(args.epochs):
@@ -56,10 +56,12 @@ def run(args):
         writer.flush()
         print("Epoch %d, average training loss %9.6f" % (epoch + 1, training_loss / len(train_loader)))
 
-        torch.save({'epoch': epoch + 1,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    }, args.cpt + "plantseg3d-{}.pth".format(epoch + 1))
+        if args.save:
+            Path(args.cpt).mkdir(parents=True, exist_ok=True)
+            torch.save({'epoch': epoch + 1,
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        }, args.cpt + "plantseg3d-{}.pth".format(epoch + 1))
 
     writer.close()
 

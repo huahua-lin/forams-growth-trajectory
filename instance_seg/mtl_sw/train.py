@@ -1,5 +1,5 @@
 import argparse
-import os
+from pathlib import Path
 
 import torch.optim
 from torch import nn
@@ -13,7 +13,7 @@ import torchio as tio
 
 
 def run():
-    os.makedirs(args.log_dir, exist_ok=True)
+    Path(args.log_dir).mkdir(parents=True, exist_ok=True)
     writer = SummaryWriter(log_dir=args.log_dir)
     device = torch.device("cpu" if not torch.cuda.is_available() else args.device)
 
@@ -47,8 +47,9 @@ def run():
         train_consistence_loss = 0.0
         for _, (x, mask, _) in enumerate(train_loader):
             x, fg_mask, bdry_mask, bg_mask = x.to(device=device, dtype=torch.float), mask[0].to(device=device,
-                                                                                                dtype=torch.float), mask[1].to(
-                device=device, dtype=torch.float), mask[2].to(device=device, dtype=torch.float)
+                                                                                                dtype=torch.float), \
+                mask[1].to(
+                    device=device, dtype=torch.float), mask[2].to(device=device, dtype=torch.float)
             optimizer.zero_grad()
             fg, bdry, bg = model(x)
 
@@ -84,10 +85,13 @@ def run():
         writer.add_scalar("Consistence_Loss", train_consistence_loss / len(train_loader), epoch)
         writer.flush()
         print("Epoch %d, average training loss %9.6f" % (epoch + 1, training_loss / len(train_loader)))
-        torch.save({'epoch': epoch + 1,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    }, args.cpt + "mtl3d-{}.pth".format(epoch + 1))
+
+        if args.save:
+            Path(args.cpt).mkdir(parents=True, exist_ok=True)
+            torch.save({'epoch': epoch + 1,
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        }, args.cpt + "mtl3d-{}.pth".format(epoch + 1))
     writer.close()
 
 
