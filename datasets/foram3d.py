@@ -75,7 +75,7 @@ class ForamDataset3D(data.Dataset):
         else:
             raise ValueError('Semantic segmentation method is not correct.')
 
-        filename = self.img_paths[i].split('/')[-1]
+        filename = os.path.basename(self.img_paths[i])
 
         return x, mask, filename
 

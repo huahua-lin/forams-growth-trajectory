@@ -18,7 +18,8 @@ class ForamDataset2D(data.Dataset):
 
         self.img_paths, self.label_paths = [], []
         if phase == 'train':
-            img_paths_train = glob.glob(os.path.join(self.root + '/images_cropped/train', '*'))  # change to your own path
+            img_paths_train = glob.glob(
+                os.path.join(self.root + '/images_cropped/train', '*'))  # change to your own path
             label_paths_train = glob.glob(os.path.join(self.root + '/labels_cropped_binary/train', '*'))
             for path in img_paths_train:
                 pngs = glob.glob(os.path.join(path, '*'))
@@ -75,7 +76,8 @@ class ForamDataset2D(data.Dataset):
             label = F.rotate(label, angle)
 
         img = self.normalize(img)
-        filename = self.img_paths[i].split('/')[-2] + '/' + self.img_paths[i].split('/')[-1]
+        parts = os.path.normpath(self.img_paths[i]).split(os.sep)
+        filename = os.path.join(parts[-2], parts[-1])  # e.g. "st012_bl3_fo4/0.png"
 
         return img, label, filename
 
