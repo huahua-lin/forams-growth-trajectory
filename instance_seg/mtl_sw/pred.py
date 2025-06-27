@@ -4,7 +4,7 @@ from pathlib import Path
 
 import torch
 
-from unet3d import UNet3D
+from unet3d_mtl import UNet3D_MTL
 from datasets import ForamDataset3D
 from utils import save_slice_by_slice
 
@@ -12,10 +12,10 @@ from utils import save_slice_by_slice
 def run():
     device = torch.device("cpu" if not torch.cuda.is_available() else args.device)
 
-    test_dataset = ForamDataset3D(args.data_pth, phase="test", transform=None, seg="unet")
+    test_dataset = ForamDataset3D(args.data_folder, phase="test", transform=None, seg="mtl")
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
-    model = UNet3D(in_channels=1, num_classes=1).to(device)
+    model = UNet3D_MTL(in_channels=1, num_classes=1).to(device)
 
     checkpoint = torch.load(args.cpt, map_location=device, weights_only=True)
     for key in list(checkpoint['model_state_dict'].keys()):
@@ -31,10 +31,13 @@ def run():
 
         # make predictions
         with torch.no_grad():
-            y_pred = model(x)
+            fg, bdry, bg = model(x)
 
         # generate binary masks
-        mask = torch.sigmoid(y_pred) > 0.5
+        fg_pred = torch.sigmoid(fg) > 0.5
+        bdry_pred = torch.sigmoid(bdry) > 0.4
+        bg_pred = torch.sigmoid(bg) > 0.9
+        mask = fg_pred | (bdry_pred & (~bg_pred))
         mask = mask.squeeze(1)
 
         # save the masks as PNG images
@@ -47,9 +50,9 @@ def run():
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Predicting semantic segmentation results")
+    parser = argparse.ArgumentParser(description="Training model for segmentation")
     parser.add_argument("--device", type=str, default="cuda:0")
-    parser.add_argument("--data-pth", type=str, default=".", help="Path to testing data")
+    parser.add_argument("--data-folder", type=str, default=".", help="Path to testing data")
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--cpt", type=str, default=".", help="Path to checkpoint")
     parser.add_argument("--save", type=bool, default=True)

@@ -22,16 +22,20 @@ def run():
 
     for step, (x, _, filenames) in enumerate(test_loader):
         print(step, filenames)
-        with torch.no_grad():
-            y_pred = model(x.to(dtype=torch.float32, device=device))
-            mask = torch.sigmoid(y_pred) > 0.5
+        x = x.to(dtype=torch.float32, device=device)
 
-        # save the predicted mask as a PNG image
+        # make predictions
+        with torch.no_grad():
+            y_pred = model(x)
+
+        # generate binary masks
+        mask = torch.sigmoid(y_pred) > 0.5
+
+        # save the masks as PNG images
         if args.save:
             for i in range(len(filenames)):  # loop batch
                 parts = os.path.normpath(filenames[i]).split(os.sep)
                 Path(os.path.join(args.save_loc, parts[0])).mkdir(parents=True, exist_ok=True)
-
                 # convert Bool array to 1-bit images
                 mask_img = Image.fromarray(mask[i].squeeze().cpu().numpy().astype(np.uint8) * 255).convert("1")
                 mask_img.save(os.path.join(args.save_loc, filenames[i]))
