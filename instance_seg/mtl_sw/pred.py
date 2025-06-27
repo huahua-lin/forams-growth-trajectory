@@ -37,7 +37,7 @@ def run():
         fg_pred = torch.sigmoid(fg) > 0.5
         bdry_pred = torch.sigmoid(bdry) > 0.4
         bg_pred = torch.sigmoid(bg) > 0.9
-        mask = fg_pred | (bdry_pred & (~bg_pred))
+        mask = (fg_pred & (~bdry_pred)) & (~bg_pred)
         mask = mask.squeeze(1)
 
         # save the masks as PNG images
