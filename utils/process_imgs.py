@@ -25,7 +25,7 @@ def stack_imgs(pth: str, format='xyz') -> np.ndarray:
         stacked.append(img)
     stacked = np.stack(stacked, axis=0)
     if format == "xyz":
-        stacked = np.transpose(stacked, (1, 2, 0)).astype(np.int8)  # in (x, y, z) format
+        stacked = np.transpose(stacked, (1, 2, 0))  # in (x, y, z) format
 
     return stacked
 
@@ -61,5 +61,5 @@ def save_slice_by_slice(pth: str, volume: np.ndarray, dim: int, format=".png"):
         if np.issubdtype(volume.dtype, np.bool_):
             slice_ = Image.fromarray(slice_.astype(np.uint8) * 255).convert("1")
         else:
-            slice_ = Image.fromarray(slice_.astype(np.uint8))
+            slice_ = Image.fromarray((slice_ * 255).astype(np.uint8))
         slice_.save(os.path.join(pth, str(i) + format))
