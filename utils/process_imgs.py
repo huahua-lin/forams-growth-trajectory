@@ -21,7 +21,7 @@ def stack_imgs(pth: str, format='xyz') -> np.ndarray:
     paths = natsorted(glob.glob(os.path.join(pth, "*")))
     stacked = []
     for path in paths:
-        img = Image.open(path)
+        img = np.array(Image.open(path))
         stacked.append(img)
     stacked = np.stack(stacked, axis=0)
     if format == "xyz":
@@ -59,7 +59,9 @@ def save_slice_by_slice(pth: str, volume: np.ndarray, dim: int, format=".png"):
         else:
             raise ValueError("Invalid dim value; should be 0, 1, or 2")
         if np.issubdtype(volume.dtype, np.bool_):
-            slice_ = Image.fromarray(slice_.astype(np.uint8) * 255).convert("1")
+            slice_ = Image.fromarray(slice_.astype(np.uint8) * 255).convert("1")  # save binary seg results: True, False
+        elif np.issubdtype(slice_.dtype, np.floating):
+            slice_ = Image.fromarray((slice_ * 255).astype(np.uint8))  # save probability maps: \in[0, 1]
         else:
-            slice_ = Image.fromarray((slice_ * 255).astype(np.uint8))
+            slice_ = Image.fromarray(slice_.astype(np.uint8))  # save instance seg results: 0, 1, 2, ...
         slice_.save(os.path.join(pth, str(i) + format))
