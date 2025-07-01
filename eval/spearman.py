@@ -17,7 +17,7 @@ def run():
 
     for name in names:
         gt_stack = stack_imgs(os.path.join(args.gt_seg_pth, name))
-        # gt_stack = resize_volume_with_aspect_ratio(gt_stack, (128, 128, 64))  # resize if needed
+        gt_stack = resize_volume_with_aspect_ratio(gt_stack, (128, 128, 64))  # resize if needed
 
         # get pred centroids coordinates and volumes
         row = df_pred.loc[df_pred['name'] == name]
@@ -65,10 +65,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Comparing ground truth and prediction results (ordering)")
     parser.add_argument("--pred-csv-pth", type=str,
                         default=".",
-                        help="File name of csv that stores the chamber information")
+                        help="A CSV file that stores the predicted chamber information")
     parser.add_argument("--gt-seg-pth", type=str,
                         default=".",
-                        help="Path that stores all the ground truth segmentation")
+                        help="A directory that stores the ground truth instance segmentation results divided by samples")
     parser.add_argument("--show", type=bool,
                         default=False, help="Show the trajectory comparison with the ground truth")
     args = parser.parse_args()
