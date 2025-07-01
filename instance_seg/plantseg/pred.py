@@ -36,7 +36,6 @@ def run():
         # generate probability maps
         # mask = torch.sigmoid(y_pred) > 0.4
         y_pred = y_pred.squeeze(1)
-        print(torch.unique(y_pred))
 
         # save the predicted probability map instead of the binary mask as a PNG image
         if args.save:
@@ -55,6 +54,6 @@ if __name__ == '__main__':
     parser.add_argument("--cpt", type=str, default=".",
                         help="Path to checkpoint")
     parser.add_argument("--save", type=bool, default=True)
-    parser.add_argument("--save-loc", type=str, default="./", help="Path to save images")
+    parser.add_argument("--save-loc", type=str, default=".", help="Path to save images")
     args = parser.parse_args()
     run()

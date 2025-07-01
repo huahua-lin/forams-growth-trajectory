@@ -2,33 +2,14 @@ import argparse
 import os
 
 import numpy as np
-from PIL import Image
 from elf.segmentation import distance_transform_watershed
 from multicut import gasp
 
-from utils import stack_imgs, save_chamber_info
-
-
-def save_instance_seg(sample_name: str, instance_seg: np.ndarray):
-    """
-    Save instance segmentation results.
-
-    Args:
-        sample_name: Name of the sample.
-        instance_seg: Instance segmentation result.
-
-    """
-    if not os.path.exists(os.path.join(args.save_img_pth, sample_name)):
-        os.makedirs(os.path.join(args.save_img_pth, sample_name))
-
-    # Save slice by slice (0.png, 1.png, ...)
-    for i in range(instance_seg.shape[2]):
-        mask_img = Image.fromarray(instance_seg[:, :, i].astype(np.uint8))
-        mask_img.save(os.path.join(args.save_img_pth, os.path.join(sample_name, str(i) + ".png")))
+from utils import stack_imgs, save_chamber_info, save_slice_by_slice
 
 
 def run():
-    sample_names = os.listdir(args.root)
+    sample_names = os.listdir(args.pred_pth)
 
     num_centroids_dict = {}
     volumes_dict = {}
@@ -70,7 +51,7 @@ def run():
         # save instance segmentation results
         if args.save_img:
             print("Saving images...")
-            save_instance_seg(sample_name, seg)
+            save_slice_by_slice(os.path.join(args.save_img_pth, sample_name), seg, dim=2, format=".png")
             print("Images saved.")
 
         print(sample_name)
@@ -92,13 +73,13 @@ if __name__ == '__main__':
                         help="Path of all semantic segmentation results divided by samples")
     parser.add_argument("--mask-pth", type=str, default=".",
                         help="Path of all semantic segmentation results (mask) divided by samples")
-    parser.add_argument("--save-csv", type=bool, default=True,
+    parser.add_argument("--save-csv", type=bool, default=False,
                         help="Save chamber information to the csv file")
     parser.add_argument("--save-csv-pth", type=str, default="./chambers_geo.csv",
                         help="Path to save csv file")
-    parser.add_argument("--save-img", type=bool, default=False,
+    parser.add_argument("--save-img", type=bool, default=True,
                         help="Save instance segmentation results")
-    parser.add_argument("--save-img-pth", type=str, default="./",
+    parser.add_argument("--save-img-pth", type=str, default=".",
                         help="Path to save the instance segmentation results")
     args = parser.parse_args()
     run()
