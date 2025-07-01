@@ -1,5 +1,6 @@
 import argparse
 import os
+from typing import Optional, Tuple
 
 import numpy as np
 from skimage.morphology import isotropic_erosion
@@ -8,8 +9,8 @@ from skimage.segmentation import watershed
 from utils import stack_imgs, save_chamber_info, save_slice_by_slice
 
 
-def seeded_watershed(mask: np.array, erosion=True, erosion_radius=None, ccl_conn=6, seed_size=10) -> [np.ndarray,
-                                                                                                      np.ndarray]:
+def seeded_watershed(mask: np.ndarray, erosion: bool = True, erosion_radius: Optional[int] = None, ccl_conn: int = 6,
+                     seed_size: int = 10) -> Tuple[np.ndarray, np.ndarray]:
     """
     Seeded watershed.
 
@@ -56,6 +57,8 @@ def run():
     centroids_dict = {}
 
     for sample_name in sample_names:
+        print(sample_name)
+
         # stack slices to form the 3d data
         mask = stack_imgs(os.path.join(args.root, sample_name))
 
@@ -84,12 +87,10 @@ def run():
             save_slice_by_slice(os.path.join(args.save_img_pth, sample_name), watershed_result, dim=2, format=".png")
             print("Images saved.")
 
-        print(sample_name)
         print(f"Number of chambers: {num_centroids_dict[sample_name]}")
         print(f"Volumes: {volumes_dict[sample_name]}")
         print(f"Centroids: {centroids_dict[sample_name]}")
         print("\n")
-
     # save chamber information to the CSV file
     if args.save_csv:
         print("Saving CSV file...")
@@ -99,7 +100,7 @@ def run():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Seeded watershed on binary masks")
-    parser.add_argument("--root", type=str, default="D:/PISTON/pred/biseg_unet3d/test",
+    parser.add_argument("--root", type=str, default=".",
                         help="Path of all semantic segmentation results divided by samples")
     parser.add_argument("--save-csv", type=bool, default=True,
                         help="Save chamber information to the csv file")

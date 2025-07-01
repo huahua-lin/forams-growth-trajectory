@@ -1,18 +1,17 @@
 import argparse
-import glob
 import os
-from typing import Dict, List
+from typing import Optional, Tuple
 
 import numpy as np
-from PIL import Image
-from natsort import natsorted
+from scipy.ndimage import gaussian_filter
 from skimage.morphology import isotropic_erosion
 import cc3d
-import csv
 from skimage.segmentation import watershed
+from utils import stack_imgs, save_chamber_info, save_slice_by_slice
 
 
-def seeded_watershed(mask: np.array, erosion=True, erosion_radius=None, ccl_conn=6, seed_size=10) -> [np.ndarray, np.ndarray]:
+def seeded_watershed(mask: np.ndarray, erosion: bool = True, erosion_radius: Optional[int] = None, ccl_conn: int = 6,
+                     seed_size: int = 10) -> Tuple[np.ndarray, np.ndarray]:
     """
     Seeded watershed.
 
@@ -51,79 +50,6 @@ def seeded_watershed(mask: np.array, erosion=True, erosion_radius=None, ccl_conn
     return watershed_result, seeds
 
 
-def save_csv(file_name: str, num_centroids_dict: Dict[str, int], volumes_dict: Dict[str, List[int]],
-             centroids_dict: Dict[str, List[List[float]]]):
-    """
-    Save chamber information, including the number of chambers, volumes and centroids.
-
-    Args:
-        file_name: Name of the output CSV file.
-        num_centroids_dict: Dictionary mapping chamber names to the number of centroids.
-        volumes_dict: Dictionary mapping chamber names to their volume.
-        centroids_dict: Dictionary mapping chamber names to a list of centroid coordinates.
-
-    """
-
-    # header = ["name", "num_centroids", "volumes"] + [str(i) for i in range(1, len(num_centroids_dict) + 1)]
-    # with open(file_name, mode="w", newline="") as csvfile:
-    #     writer = csv.writer(csvfile)
-    #     writer.writerow(header)
-    #     for key, value in centroids_dict.items():
-    #         row = [key] + [str(num_centroids_dict[key])] + [str(volumes_dict[key])] + [str(lst) for lst in
-    #                                                                                    centroids_dict[key]]
-    #         writer.writerow(row)
-
-    header = ["name", "num_chambers", "volumes", "centroids"]
-    with open(file_name, mode="w", newline="") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(header)
-        for key, value in centroids_dict.items():
-            row = [key] + [str(num_centroids_dict[key])] + [str(volumes_dict[key])] + [str(centroids_dict[key])]
-            writer.writerow(row)
-
-
-def save_sw(sample_name: str, watershed_result: np.ndarray):
-    """
-    Save instance segmentation results.
-
-    Args:
-        sample_name: Name of the sample.
-        watershed_result: Instance segmentation result.
-
-    """
-
-    if not os.path.exists(os.path.join(args.save_img_pth, sample_name)):
-        os.makedirs(os.path.join(args.save_img_pth, sample_name))
-
-    # Save slice by slice (0.png, 1.png, ...)
-    for i in range(watershed_result.shape[2]):
-        mask_img = Image.fromarray(watershed_result[:, :, i].astype(np.uint8))
-        mask_img.save(os.path.join(args.save_img_pth, os.path.join(sample_name, str(i) + ".png")))
-
-
-def stack(pth: str) -> np.ndarray:
-    """
-    Stack 2D slices to form 3D data.
-
-    Args:
-        pth: Directory of 2D slices.
-
-    Returns:
-        3D data.
-
-    """
-
-    pths = natsorted(glob.glob(os.path.join(pth, "*")))
-    mask = []
-    for pth in pths:
-        slice = np.array(Image.open(pth))
-        mask.append(slice)
-    mask = np.stack(mask, axis=0)
-    mask = np.transpose(mask, (1, 2, 0))  # (x, y, z) format
-
-    return mask
-
-
 def run():
     sample_names = os.listdir(args.root)
 
@@ -132,14 +58,20 @@ def run():
     centroids_dict = {}
 
     for sample_name in sample_names:
+        print(sample_name)
+
         # stack slices to form the 3d data
-        mask = stack(os.path.join(args.root, sample_name))
+        mask = stack_imgs(os.path.join(args.root, sample_name))
+
+        # smooth
+        mask = gaussian_filter(mask.astype(float), sigma=1)
+        mask = mask > 0.5
 
         # perform seeded watershed on the 3d data
-        watershed_result, seeds = seeded_watershed(mask, erosion=False, erosion_radius=2, seed_size=10)
+        watershed_result, seeds = seeded_watershed(mask, erosion=False, seed_size=10)
 
         # calculate chamber geo info: num. of chambers, volumes per chamber, centroids per chamber
-        unique_labels = np.unique(seeds)  # seeds or watershed
+        unique_labels = np.unique(seeds)
         unique_labels = unique_labels[unique_labels != 0]
         volumes = []
         centroids = []
@@ -157,10 +89,9 @@ def run():
         # save instance segmentation results
         if args.save_img:
             print("Saving images...")
-            save_sw(sample_name, watershed_result)
+            save_slice_by_slice(os.path.join(args.save_img_pth, sample_name), watershed_result, dim=2, format=".png")
             print("Images saved.")
 
-        print(sample_name)
         print(f"Number of chambers: {num_centroids_dict[sample_name]}")
         print(f"Volumes: {volumes_dict[sample_name]}")
         print(f"Centroids: {centroids_dict[sample_name]}")
@@ -169,7 +100,7 @@ def run():
     # save chamber information to the CSV file
     if args.save_csv:
         print("Saving CSV file...")
-        save_csv(args.save_csv_pth, num_centroids_dict, volumes_dict, centroids_dict)
+        save_chamber_info(args.save_csv_pth, num_centroids_dict, volumes_dict, centroids_dict)
         print("CSV file saved.")
 
 
@@ -180,10 +111,10 @@ if __name__ == '__main__':
     parser.add_argument("--save-csv", type=bool, default=True,
                         help="Save chamber information to the csv file")
     parser.add_argument("--save-csv-pth", type=str, default="./chambers_geo.csv",
-                        help="File name of csv")
-    parser.add_argument("--save-img", type=bool, default=False,
+                        help="Path to save csv file")
+    parser.add_argument("--save-img", type=bool, default=True,
                         help="Save instance segmentation results")
-    parser.add_argument("--save-img-pth", type=str, default="./",
+    parser.add_argument("--save-img-pth", type=str, default=".",
                         help="Path to save the instance segmentation results")
     args = parser.parse_args()
     run()
