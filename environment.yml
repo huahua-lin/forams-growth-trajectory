@@ -1,0 +1,22 @@
+name: foram
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python>=3.8
+  - connected_components_3d=3.22.0
+  - natsort=8.4.0
+  - numpy=1.26.4
+  - pandas=2.2.3
+  - scikit-learn=1.6.0
+  - scipy=1.13.1
+  - matplotlib=3.9.2
+  - pytorch=2.3.1
+  - pillow=9.2.0
+  - tensorboard=2.18.0
+  - pip
+  - pip:
+    - torchio==0.20.3
+    - torchvision==0.18.1a0
+    - elf==0.6.1
